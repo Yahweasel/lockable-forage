@@ -1,0 +1,27 @@
+{
+  "name": "lockable-forage",
+  "version": "0.1.0",
+  "description": "Wrapper for localforage to add locking by a three-part race check",
+  "main": "dist/lockableforage.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "localforage": "^1.10.0",
+    "rollup": "^4.20.0",
+    "tslib": "^2.6.3"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "localforage",
+    "localStorage",
+    "locking",
+    "mutex",
+    "lock"
+  ],
+  "author": "Yahweasel",
+  "license": "ISC"
+}

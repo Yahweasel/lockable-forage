@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Wrapper for localforage to add locking by a three-part race check",
   "main": "dist/lockableforage.js",
+  "types": "src/lockable-forage.ts",
   "dependencies": {},
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",

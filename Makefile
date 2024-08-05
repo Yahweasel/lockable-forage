@@ -1,6 +1,6 @@
-all: dist/locakbleforage.js dist/locakbleforage.min.js
+all: dist/lockableforage.js dist/lockableforage.min.js
 
-dist/locakbleforage.js dist/locakbleforage.min.js: src/*.ts node_modules/.bin/rollup
+dist/lockableforage.js dist/lockableforage.min.js: src/*.ts node_modules/.bin/rollup
 	npm run build
 
 node_modules/.bin/rollup:

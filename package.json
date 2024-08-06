@@ -1,6 +1,6 @@
 {
   "name": "lockable-forage",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Wrapper for localforage to add locking by a three-part race check",
   "main": "dist/lockableforage.js",
   "types": "src/lockable-forage.ts",

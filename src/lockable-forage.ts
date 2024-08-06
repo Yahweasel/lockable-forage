@@ -140,37 +140,38 @@ export class LockableForage {
                     });
                     return false;
                 }
-
-                // Periodically reacquire Y to keep locked
-                const reacquireInterval = setInterval(async () => {
-                    myLock.time = now() + this._timeoutTime;
-                    await this.localforage.setItem(keyX, myLock);
-                }, this._reacquisitionTime);
-
-                // Do it
-                let threw = false;
-                let ex: any = null;
-                try {
-                    await criticalSection();
-                } catch (tex) {
-                    threw = true;
-                    ex = tex;
-                }
-
-                // Unlock
-                clearInterval(reacquireInterval);
-                await this.localforage.removeItem(keyY);
-                await this.localforage.removeItem(keyX);
-                if (threw)
-                    throw ex;
-                return true;
             });
             this._promise = p;
             const acquired = await p;
-            if (acquired)
-                return true;
-            else if (!block)
-                return false;
+            if (!acquired) {
+                if (!block)
+                    return false;
+                continue;
+            }
+
+            // Periodically reacquire to keep locked
+            const reacquireInterval = setInterval(async () => {
+                myLock.time = now() + this._timeoutTime;
+                await this.localforage.setItem(keyX, myLock);
+            }, this._reacquisitionTime);
+
+            // Do it
+            let threw = false;
+            let ex: any = null;
+            try {
+                await criticalSection();
+            } catch (tex) {
+                threw = true;
+                ex = tex;
+            }
+
+            // Unlock
+            clearInterval(reacquireInterval);
+            await this.localforage.removeItem(keyY);
+            await this.localforage.removeItem(keyX);
+            if (threw)
+                throw ex;
+            return true;
         }
     }
 

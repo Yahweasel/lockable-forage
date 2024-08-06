@@ -37,6 +37,7 @@ export class LockableForage {
          */
         public localforage: typeof localforageT
     ) {
+        this._promise = Promise.all([]);
         this._reacquisitionTime = 100;
         this._timeoutTime = 1000;
     }
@@ -98,70 +99,78 @@ export class LockableForage {
         }
 
         while (true) {
-            /* The principle is to lock both and use the ordering between the
-             * races to choose a victor. */
-            myLock.time = now() + this._timeoutTime;
-
-            // Set x then y
-            let lockState: LockState | null =
-                await this.localforage.getItem(keyX);
-            if (locked(lockState)) {
-                if (!block)
-                    return false;
-                await new Promise(
-                    res => setTimeout(res, this._reacquisitionTime));
-                continue;
-            }
-            await this.localforage.setItem(keyX, myLock);
-            lockState =
-                await this.localforage.getItem(keyY);
-            if (locked(lockState)) {
-                if (!block)
-                    return false;
-                await new Promise(
-                    res => setTimeout(res, this._reacquisitionTime));
-                continue;
-            }
-            await this.localforage.setItem(keyY, myLock);
-
-            /* Check if x indicates that a race happened. It's actually the
-             * winner of the *x* race that gets to continue, not the *y* race. */
-            lockState = await this.localforage.getItem(keyX);
-            if (!lockState || lockState.id !== myLock.id) {
-                if (!block)
-                    return false;
-                await new Promise(res => {
-                    setTimeout(
-                        res,
-                        (Math.random() * this._reacquisitionTime)
-                    );
-                });
-                continue;
-            }
-
-            // Periodically reacquire Y to keep locked
-            const reacquireInterval = setInterval(async () => {
+            const p = this._promise.catch(console.error).then(async () => {
+                /* The principle is to lock both and use the ordering between the
+                 * races to choose a victor. */
                 myLock.time = now() + this._timeoutTime;
+
+                // Set x then y
+                let lockState: LockState | null =
+                    await this.localforage.getItem(keyX);
+                if (locked(lockState)) {
+                    if (!block)
+                        return false;
+                    await new Promise(
+                        res => setTimeout(res, this._reacquisitionTime));
+                    return false;
+                }
                 await this.localforage.setItem(keyX, myLock);
-            }, this._reacquisitionTime);
+                lockState =
+                    await this.localforage.getItem(keyY);
+                if (locked(lockState)) {
+                    if (!block)
+                        return false;
+                    await new Promise(
+                        res => setTimeout(res, this._reacquisitionTime));
+                    return false;
+                }
+                await this.localforage.setItem(keyY, myLock);
 
-            // Do it
-            let threw = false;
-            let ex: any = null;
-            try {
-                await criticalSection();
-            } catch (tex) {
-                threw = true;
-                ex = tex;
-            }
+                /* Check if x indicates that a race happened. It's actually the
+                 * winner of the *x* race that gets to continue, not the *y* race. */
+                lockState = await this.localforage.getItem(keyX);
+                if (!lockState || lockState.id !== myLock.id) {
+                    if (!block)
+                        return false;
+                    await new Promise(res => {
+                        setTimeout(
+                            res,
+                            (Math.random() * this._reacquisitionTime)
+                        );
+                    });
+                    return false;
+                }
 
-            // Unlock
-            clearInterval(reacquireInterval);
-            await this.localforage.removeItem(keyY);
-            await this.localforage.removeItem(keyX);
-            if (threw)
-                throw ex;
-            return true;
+                // Periodically reacquire Y to keep locked
+                const reacquireInterval = setInterval(async () => {
+                    myLock.time = now() + this._timeoutTime;
+                    await this.localforage.setItem(keyX, myLock);
+                }, this._reacquisitionTime);
+
+                // Do it
+                let threw = false;
+                let ex: any = null;
+                try {
+                    await criticalSection();
+                } catch (tex) {
+                    threw = true;
+                    ex = tex;
+                }
+
+                // Unlock
+                clearInterval(reacquireInterval);
+                await this.localforage.removeItem(keyY);
+                await this.localforage.removeItem(keyX);
+                if (threw)
+                    throw ex;
+                return true;
+            });
+            this._promise = p;
+            const acquired = await p;
+            if (acquired)
+                return true;
+            else if (!block)
+                return false;
         }
     }
 
@@ -192,6 +201,7 @@ export class LockableForage {
         return this.maybeLock(key, false, criticalSection);
     }
 
+    private _promise: Promise<unknown>;
     private _reacquisitionTime: number;
     private _timeoutTime: number;
 }

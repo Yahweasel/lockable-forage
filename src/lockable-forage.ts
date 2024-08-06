@@ -140,6 +140,8 @@ export class LockableForage {
                     });
                     return false;
                 }
+
+                return true;
             });
             this._promise = p;
             const acquired = await p;
